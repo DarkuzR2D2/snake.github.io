@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<HTML>
+    <head>
+        <title>Adivina el Número</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding-top: 50px;
+                background-color: #2C3E50;
+                color: white;
+            }
+            input {
+                padding: 10px;
+                font-size: 18px;
+                margin: 10px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 18px;
+                background-color: #3498DB;
+                color: white;
+                border: none;
+                cursor: pointer;
+                border-radius: 5px;
+            }
+            button:hover {
+                background-color: #2980B9;
+            }
+            select {
+                padding: 10px;
+                font-size: 18px;
+                margin: 10px;
+                background-color: #34495E;
+                color: white;
+                border: 2px solid #3498DB;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            select:hover {
+                background-color: #2C3E50;
+            }
+            .botonesNivel {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .btnNivel {
+                padding: 12px 20px;
+                font-size: 16px;
+                background-color: #34495E;
+                color: white;
+                border: 2px solid #3498DB;
+                cursor: pointer;
+                border-radius: 5px;
+                transition: all 0.3s ease;
+            }
+            .btnNivel:hover {
+                background-color: #2980B9;
+                transform: scale(1.05);
+            }
+            .btnNivel.seleccionado {
+                background-color: #2ecc71;
+                border-color: #27ae60;
+                font-weight: bold;
+            }
+            #resultado {
+                font-size: 24px;
+                margin: 20px;
+                font-weight: bold;
+            }
+            #selectorNivel {
+                background-color: #34495E;
+                padding: 40px;
+                border-radius: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+            #selectorNivel h2 {
+                margin: 0;
+                font-size: 24px;
+            }
+            #juegoContainer {
+                display: none;
+            }
+            #juegoContainer.activo {
+                display: block;
+            }
+            #btnEmpezar {
+                background-color: #2ecc71;
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+            #btnEmpezar:hover {
+                background-color: #27ae60;
+            }
+            #btnCambiarDificultad {
+                background-color: #e67e22;
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            #btnCambiarDificultad:hover {
+                background-color: #d35400;
+            }
+            /* Botón para resetear el progreso guardado */
+            #btnReset {
+                background-color: #c0392b;
+                padding: 10px 20px;
+                font-size: 14px;
+                border: none;
+                color: white;
+                cursor: pointer;
+                border-radius: 5px;
+            }
+            #btnReset:hover {
+                background-color: #a93226;
+            }
+            #puntos {
+                font-size: 18px;
+                margin: 10px;
+                color: #f1c40f;
+                font-weight: bold;
+            }
+            .puntosPorVictoria {
+                font-size: 16px;
+                color: #f1c40f;
+                margin-top: 10px;
+            }
+            .puntosPorDerrota {
+                font-size: 16px;
+                color: #e74c3c;
+                margin-top: 10px;
+            }
+            .pista {
+                margin-top: 8px;
+                font-size: 14px;
+                color: #f39c12;
+                font-weight: bold;
+            }
+            
+            /* Animaciones */
+            @keyframes animacionVictoria {
+                0% {
+                    transform: scale(1) rotate(0deg);
+                    opacity: 1;
+                }
+                50% {
+                    transform: scale(1.2) rotate(5deg);
+                }
+                100% {
+                    transform: scale(1) rotate(0deg);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes animacionDerrota {
+                0% {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                25% {
+                    transform: translateX(-10px);
+                }
+                50% {
+                    transform: translateX(10px);
+                }
+                75% {
+                    transform: translateX(-10px);
+                }
+                100% {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.8);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+            
+            #resultado.victoria {
+                animation: animacionVictoria 0.6s ease-in-out;
+                color: #2ecc71 !important;
+            }
+            
+            #resultado.derrota {
+                animation: animacionDerrota 0.6s ease-in-out;
+                color: #e74c3c !important;
+            }
+            
+            #puntos.actualizar {
+                animation: fadeIn 0.5s ease-in-out;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🎮Adivina el Número</h1>
+        
+        <!-- Selector de Nivel (Pantalla inicial) -->
+        <div id="selectorNivel">
+            <h2>Elige tu nivel de dificultad</h2>
+            <div class="botonesNivel">
+                <button class="btnNivel seleccionado" data-nivel="facil" onclick="SeleccionarNivel('facil')">Fácil (1 - 50)</button>
+                <button class="btnNivel" data-nivel="normal" onclick="SeleccionarNivel('normal')">Normal (1 - 100)</button>
+                <button class="btnNivel" data-nivel="dificil" onclick="SeleccionarNivel('dificil')">Difícil (1 - 200)</button>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button id="btnEmpezar" onclick="EmpezarJuego()">Empezar Juego</button>
+                <button id="btnReset" onclick="ResetProgreso()" title="Borrar progreso guardado">Borrar progreso</button>
+            </div>
+        </div>
+        
+        <!-- Juego (Oculto hasta que se seleccione nivel) -->
+        <div id="juegoContainer">
+            <p id="descripcion">Estoy pensando en un número entre 1 y 100. ¿Puedes adivinar cuál es?</p>
+            <input type="number" id="Intento" placeholder="Ingresa tu número" min="1" max="100" onkeypress="ManejarEnter(event)">
+            <button id="btnAdivinar" onclick="VerificarIntento()">Adivinar</button>
+            <button id="btnNuevo" onclick="ReiniciarJuego()">Nuevo Juego</button>
+            <button id="btnCambiarDificultad" onclick="CambiarDificultad()">Cambiar Dificultad</button>
+            <div id="resultado"></div>
+            <div id="intentos">Intentos: 0/10</div>
+            <div id="victorias">Victorias: 0</div>
+            <div id="derrotas">Derrotas: 0</div>
+            <div id="puntos">Puntos: 0</div>
+        </div>
+        <script>
+            // Variables del juego
+            let nivelActual = 'facil';
+            let juegoIniciado = false;
+            let rangoNiveles = {
+                facil: { min: 1, max: 50, multiplicador: 1, pistas: { cercano: 3, lejos: 15 } },
+                normal: { min: 1, max: 100, multiplicador: 2, pistas: { cercano: 5, lejos: 30 } },
+                dificil: { min: 1, max: 200, multiplicador: 3, pistas: null }
+            };
+            let numeroSecreto = null;
+            let intentosRealizados = 0;
+            let victoriasAcumuladas = 0;
+            let derrotasAcumuladas = 0;
+            let puntosAcumulados = 0;
+            let juegoActivo = false;
+            const maxIntentos = 10;
+
+            // Persistencia: guardar y cargar progreso usando localStorage
+            function GuardarProgreso() {
+                const estado = {
+                    victorias: victoriasAcumuladas,
+                    derrotas: derrotasAcumuladas,
+                    puntos: puntosAcumulados,
+                    nivel: nivelActual
+                };
+                try {
+                    localStorage.setItem('adivina_progreso', JSON.stringify(estado));
+                } catch (e) {
+                    console.warn('No se pudo guardar progreso:', e);
+                }
+            }
+
+            function CargarProgreso() {
+                try {
+                    const raw = localStorage.getItem('adivina_progreso');
+                    if (!raw) return;
+                    const estado = JSON.parse(raw);
+                    if (estado) {
+                        victoriasAcumuladas = Number(estado.victorias) || 0;
+                        derrotasAcumuladas = Number(estado.derrotas) || 0;
+                        puntosAcumulados = Number(estado.puntos) || 0;
+                        nivelActual = estado.nivel || nivelActual;
+                        // Actualizar DOM con los valores cargados
+                        document.getElementById('victorias').textContent = 'Victorias: ' + victoriasAcumuladas;
+                        document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
+                        document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
+                        // Si el selector de nivel se presenta como botones, actualizar estilo
+                        const botones = document.querySelectorAll('.btnNivel');
+                        if (botones && botones.length) {
+                            botones.forEach(b => b.classList.remove('seleccionado'));
+                            const boton = Array.from(botones).find(b => b.dataset && b.dataset.nivel === nivelActual);
+                            if (boton) boton.classList.add('seleccionado');
+                        } else {
+                            // si existiera un select antiguo, intentar actualizar su valor
+                            const sel = document.getElementById('nivel');
+                            if (sel) sel.value = nivelActual;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('No se pudo cargar progreso:', e);
+                }
+            }
+
+            // Función para manejar la tecla Enter
+            function ManejarEnter(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    VerificarIntento();
+                }
+            }
+
+            // Función para seleccionar nivel
+            function SeleccionarNivel(nivel) {
+                nivelActual = nivel;
+                // Actualizar estilos de botones
+                const botones = document.querySelectorAll('.btnNivel');
+                botones.forEach(btn => btn.classList.remove('seleccionado'));
+                const boton = Array.from(botones).find(b => b.dataset && b.dataset.nivel === nivel);
+                if (boton) boton.classList.add('seleccionado');
+            }
+
+            // Función para crear y reproducir sonido de victoria
+            function SonidoVictoria() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+                
+                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.6);
+            }
+
+            // Función para crear y reproducir sonido de derrota
+            function SonidoDerrota() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.frequency.setValueAtTime(349.23, audioContext.currentTime); // F4
+                osc.frequency.setValueAtTime(261.63, audioContext.currentTime + 0.15); // C4
+                
+                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.4);
+            }
+
+            // Función para crear y reproducir sonido de inicio
+            function SonidoInicio() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+                
+                gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.2);
+            }
+
+            // Función para reproducir un sonido breve cuando el jugador falla un intento
+            function SonidoFallo() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+
+                    // Tonos cortos y descendentes para indicar fallo
+                    const now = audioContext.currentTime;
+                    osc.frequency.setValueAtTime(440, now); // A4
+                    osc.frequency.linearRampToValueAtTime(330, now + 0.08); // E4
+
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } catch (e) {
+                    // En caso de error con AudioContext, no interrumpir el juego
+                    console.warn('No se pudo reproducir SonidoFallo:', e);
+                }
+            }
+
+            // Funcion que Verifica si Adivinaste
+            function VerificarIntento() {
+                const mensaje = document.getElementById('resultado');
+                const valor = document.getElementById('Intento').value;
+                const intento = parseInt(valor, 10);
+                const minRango = rangoNiveles[nivelActual].min;
+                const maxRango = rangoNiveles[nivelActual].max;
+
+                if (isNaN(intento)) {
+                    mensaje.textContent = 'Por favor ingresa un número válido.';
+                    mensaje.style.color = '#f1c40f';
+                    return;
+                }
+
+                // Validar que el número esté dentro del rango permitido
+                if (intento < minRango || intento > maxRango) {
+                    mensaje.textContent = 'El número debe estar entre ' + minRango + ' y ' + maxRango + '.';
+                    mensaje.style.color = '#e67e22';
+                    return;
+                }
+
+                intentosRealizados++;
+
+                if (intento === numeroSecreto) {
+                    // Calcular puntos: (100 - 10 * intentos) * multiplicador según dificultad
+                    const puntosBase = Math.max(0, 100 - (10 * intentosRealizados));
+                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
+                    const puntosVictoria = puntosBase * multiplicador;
+                    puntosAcumulados += puntosVictoria;
+                    
+                    mensaje.textContent = '🎉 ¡GANASTE! El número era ' + numeroSecreto + '.';
+                    mensaje.innerHTML += '<div class="puntosPorVictoria">+' + puntosVictoria + ' puntos</div>';
+                    mensaje.style.color = '#2ecc71';
+                    mensaje.classList.add('victoria');
+                    victoriasAcumuladas++;
+                    document.getElementById('victorias').textContent = 'Victorias: ' + victoriasAcumuladas;
+                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
+                    document.getElementById('puntos').classList.add('actualizar');
+                        // Guardar progreso
+                        GuardarProgreso();
+                        // bloquear entrada y botón de adivinar
+                        document.getElementById('btnAdivinar').disabled = true;
+                        document.getElementById('Intento').disabled = true;
+                        juegoActivo = false;
+                        // Reproducir sonido de victoria
+                        SonidoVictoria();
+                } else if (intentosRealizados >= maxIntentos) {
+                    // Calcular puntos perdidos por derrota
+                    const puntosBase = 30; // penalidad base
+                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
+                    const puntosPerdidos = puntosBase * multiplicador;
+                    puntosAcumulados = Math.max(0, puntosAcumulados - puntosPerdidos);
+                    
+                    mensaje.textContent = '😞 Has perdido. El número era ' + numeroSecreto + '.';
+                    mensaje.innerHTML += '<div class="puntosPorDerrota">-' + puntosPerdidos + ' puntos</div>';
+                    mensaje.style.color = '#e74c3c';
+                    mensaje.classList.add('derrota');
+                    // contar la derrota y bloquear entrada y botón de adivinar
+                    derrotasAcumuladas++;
+                    document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
+                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
+                    document.getElementById('puntos').classList.add('actualizar');
+                    document.getElementById('btnAdivinar').disabled = true;
+                    document.getElementById('Intento').disabled = true;
+                    juegoActivo = false;
+                    // Guardar progreso
+                    GuardarProgreso();
+                    // Reproducir sonido de derrota
+                    SonidoDerrota();
+                } else {
+                    // Mensaje base según si es mayor o menor
+                    if (intento < numeroSecreto) {
+                        mensaje.textContent = '⬆️ Demasiado bajo. Intenta de nuevo.';
+                    } else {
+                        mensaje.textContent = '⬇️ Demasiado alto. Intenta de nuevo.';
+                    }
+                    mensaje.style.color = '#e74c3c';
+
+                    // Reproducir sonido de fallo (solo en intentos incorrectos antes de la derrota)
+                    SonidoFallo();
+
+                    // Añadir pista para niveles que la permiten (facil y normal)
+                    const pistaCfg = rangoNiveles[nivelActual] && rangoNiveles[nivelActual].pistas;
+                    if (pistaCfg) {
+                        const diff = Math.abs(intento - numeroSecreto);
+                        let textoPista = '';
+                        if (pistaCfg.cercano != null && diff <= pistaCfg.cercano) {
+                            textoPista = 'Muy cerca';
+                        } else if (pistaCfg.lejos != null && diff >= pistaCfg.lejos) {
+                            textoPista = 'Muy lejos';
+                        }
+                        if (textoPista) {
+                            // agregar pista como línea aparte para mantener claridad
+                            mensaje.innerHTML += '<div class="pista">Pista: ' + textoPista + '</div>';
+                        }
+                    }
+                }
+
+                document.getElementById('intentos').textContent = 'Intentos: ' + intentosRealizados + '/' + maxIntentos;
+            }
+            //Funcion para Reiniciar el Juego
+            function ReiniciarJuego() {
+                // Si el juego estaba activo y el jugador no adivinó (y ya hizo al menos un intento), contamos una derrota y restamos puntos
+                if (juegoActivo && intentosRealizados > 0) {
+                    derrotasAcumuladas++;
+                    document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
+                    
+                    // Restar puntos por derrota
+                    const puntosBase = 30;
+                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
+                    const puntosPerdidos = puntosBase * multiplicador;
+                    puntosAcumulados = Math.max(0, puntosAcumulados - puntosPerdidos);
+                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
+                    // Guardar progreso tras penalización por reinicio
+                    GuardarProgreso();
+                }
+
+                const rango = rangoNiveles[nivelActual];
+                numeroSecreto = Math.floor(Math.random() * (rango.max - rango.min + 1)) + rango.min;
+                intentosRealizados = 0;
+                juegoActivo = true;
+                document.getElementById('resultado').textContent = '';
+                document.getElementById('resultado').classList.remove('victoria', 'derrota');
+                document.getElementById('intentos').textContent = 'Intentos: 0/' + maxIntentos;
+                document.getElementById('Intento').value = '';
+                // Actualizar los límites del input
+                document.getElementById('Intento').max = rangoNiveles[nivelActual].max;
+                document.getElementById('Intento').min = rangoNiveles[nivelActual].min;
+                // Rehabilitar entrada y botón de adivinar
+                document.getElementById('Intento').disabled = false;
+                document.getElementById('btnAdivinar').disabled = false;
+                document.getElementById('Intento').focus();
+                // Las victorias y derrotas se mantienen entre juegos
+            }
+            // Funcion para empezar el juego
+            function EmpezarJuego() {
+                const maxRango = rangoNiveles[nivelActual].max;
+                const minRango = rangoNiveles[nivelActual].min;
+                
+                // Generar número secreto
+                numeroSecreto = Math.floor(Math.random() * maxRango) + 1;
+                intentosRealizados = 0;
+                juegoActivo = true;
+                juegoIniciado = true;
+                
+                // Actualizar el input: min y max
+                document.getElementById('Intento').max = maxRango;
+                document.getElementById('Intento').min = minRango;
+                
+                // Actualizar la descripción
+                const descripcionTexto = 'Estoy pensando en un número entre ' + minRango + ' y ' + maxRango + '. ¿Puedes adivinar cuál es?';
+                document.getElementById('descripcion').textContent = descripcionTexto;
+                
+                // Mostrar el juego y ocultar el selector
+                document.getElementById('selectorNivel').style.display = 'none';
+                document.getElementById('juegoContainer').classList.add('activo');
+                
+                // Limpiar campos
+                document.getElementById('resultado').textContent = '';
+                document.getElementById('intentos').textContent = 'Intentos: 0/' + maxIntentos;
+                document.getElementById('Intento').value = '';
+                document.getElementById('Intento').focus();
+                // Reproducir sonido de inicio
+                SonidoInicio();
+                // Cargar progreso guardado (si existe) para mostrar marcadores antes de jugar
+                CargarProgreso();
+            }
+            // Funcion para cambiar dificultad durante el juego
+            function CambiarDificultad() {
+                // Si el juego está activo y hay intentos sin victoria, contar una derrota y restar puntos
+                if (juegoActivo && intentosRealizados > 0) {
+                    derrotasAcumuladas++;
+                    document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
+                    
+                    // Restar puntos por derrota
+                    const puntosBase = 30;
+                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
+                    const puntosPerdidos = puntosBase * multiplicador;
+                    puntosAcumulados = Math.max(0, puntosAcumulados - puntosPerdidos);
+                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
+                    // Guardar progreso tras penalización por reinicio
+                    GuardarProgreso();
+                }
+                
+                // Ocultar el juego y mostrar el selector de nivel
+                document.getElementById('juegoContainer').classList.remove('activo');
+                document.getElementById('selectorNivel').style.display = 'flex';
+                
+                // Reset del estado del juego
+                juegoActivo = false;
+                intentosRealizados = 0;
+                numeroSecreto = null;
+                document.getElementById('Intento').value = '';
+                document.getElementById('resultado').textContent = '';
+                // Guardar estado (por si el usuario sale después de cambiar dificultad)
+                GuardarProgreso();
+            }
+
+            // Funcion para resetear/limpiar el progreso guardado
+            function ResetProgreso() {
+                const confirmar = confirm('¿Seguro que quieres borrar todo el progreso guardado? Esta acción no se puede deshacer.');
+                if (!confirmar) return;
+
+                try {
+                    localStorage.removeItem('adivina_progreso');
+                } catch (e) {
+                    console.warn('No se pudo eliminar el progreso:', e);
+                }
+
+                // Resetear contadores en memoria
+                victoriasAcumuladas = 0;
+                derrotasAcumuladas = 0;
+                puntosAcumulados = 0;
+
+                // Actualizar DOM
+                document.getElementById('victorias').textContent = 'Victorias: ' + victoriasAcumuladas;
+                document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
+                document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
+
+                // Volver al nivel por defecto (fácil) y actualizar selección visual
+                SeleccionarNivel('facil');
+                // Guardar el estado limpio para consistencia
+                GuardarProgreso();
+
+                // Mensaje breve al usuario
+                const resultado = document.getElementById('resultado');
+                resultado.textContent = 'Progreso borrado. Se ha seleccionado nivel Fácil.';
+                resultado.style.color = '#f1c40f';
+                resultado.classList.remove('victoria', 'derrota');
+            }
+            // Cargar progreso al cargar la página
+            CargarProgreso();
+        </script>
+    </body>
+</HTML>
