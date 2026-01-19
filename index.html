@@ -1,632 +1,634 @@
 <!DOCTYPE html>
-<HTML>
-    <head>
-        <title>Adivina el Número</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                text-align: center;
-                padding-top: 50px;
-                background-color: #2C3E50;
-                color: white;
-            }
-            input {
-                padding: 10px;
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Snake — Juego</title>
+    <style>
+        :root { --bg: #0b3b2e; --panel: #072b22; --accent: #2ecc71; --danger: #e74c3c; --muted: #95a5a6; }
+        body { margin:0; font-family: Arial, Helvetica, sans-serif; background: linear-gradient(180deg,#062b22,#032016); color: #ecf0f1; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+        .wrap { width: 94vw; max-width:720px; display:grid; grid-template-columns: 1fr 260px; gap:18px; align-items:start; }
+        .panel { background: rgba(255,255,255,0.03); padding:16px; border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,0.4); position:relative; }
+        .panel.blurred { filter: blur(6px); transition: filter 220ms ease; }
+
+        /* Modal Game Over (fixed para que no reciba el blur del panel) */
+        .modalOverlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index:9999; }
+        /* Pause overlay */
+        .pauseOverlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.7); z-index:10001; pointer-events:auto; }
+        .pauseBox { text-align:center; color:#fff; padding:20px 28px; border-radius:10px; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); }
+        .pauseBox h2 { font-size:48px; margin:0 0 8px 0; letter-spacing:4px; }
+        .pauseBox p { margin:0 0 12px 0; color:#cdd9d5; }
+        .pauseBox button { padding:8px 14px; border-radius:8px; border:none; cursor:pointer; font-weight:700; }
+        .gameOverDialog { background: rgba(10,10,10,0.95); border-radius:10px; padding:18px; width:320px; max-width:92%; text-align:center; color:#fff; box-shadow: 0 8px 28px rgba(0,0,0,0.6); }
+        .gameOverDialog h2 { margin:0 0 8px 0; font-size:20px; }
+        .gameOverDialog p { margin:6px 0 12px 0; color:#cdd9d5; }
+        .confirmFlash { animation: confirmFlash 0.6s ease; }
+        @keyframes confirmFlash {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.04); opacity: 0.95; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .gameOverControls { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+        .gameOverControls button { padding:10px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:700; }
+        .btnPrimary { background:#2ecc71; color:#04221a; }
+        .btnSecondary { background:#145a47; color:#ecf0f1; }
+        .btnWarn { background:#f39c12; color:#04221a; }
+        /* Dificultad modal */
+        .diffBtn { padding:10px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:700; background:#233f35; color:#ecf0f1 }
+        .diffBtn.selected { outline: 3px solid rgba(46,204,113,0.22); box-shadow: 0 6px 18px rgba(46,204,113,0.08); background:#145a47 }
+        #difficultyModal .diffGrid { display:flex; gap:10px; justify-content:center; margin:12px 0; }
+        canvas { background: #0b3b2e; display:block; border-radius:6px; width:100%; height:auto; }
+        .sidebar { display:flex; flex-direction:column; gap:12px; }
+        h1 { margin:0 0 6px 0; font-size:18px; }
+        .score { font-size:18px; color:var(--accent); }
+        .meta { color:var(--muted); font-size:13px; }
+        .controls { display:flex; gap:8px; flex-wrap:wrap; }
+        button { background:#145a47; color:#ecf0f1; border:none; padding:10px 12px; border-radius:6px; cursor:pointer; font-weight:600 }
+        button.secondary { background:#233f35; }
+        .touch-controls { display:grid; grid-template-columns: 56px 56px; gap:6px; }
+        .touch-controls button { width:56px; height:56px; padding:0; font-size:18px }
+        .hint { font-size:13px; color:var(--muted); }
+        @media (max-width:720px) { .wrap { grid-template-columns: 1fr; } }
+
+        /* Mejora táctil para el botón de pausa */
+        #btnPause {
+            padding: 14px 18px;
+            font-size: 16px;
+            min-width: 120px;
+            border-radius: 10px;
+            touch-action: manipulation;
+        }
+
+        @media (max-width:720px) {
+            #btnPause {
+                padding: 16px 20px;
                 font-size: 18px;
-                margin: 10px;
+                min-width: 160px;
+                width: 100%;
             }
-            button {
-                padding: 10px 20px;
-                font-size: 18px;
-                background-color: #3498DB;
-                color: white;
-                border: none;
-                cursor: pointer;
-                border-radius: 5px;
-            }
-            button:hover {
-                background-color: #2980B9;
-            }
-            select {
-                padding: 10px;
-                font-size: 18px;
-                margin: 10px;
-                background-color: #34495E;
-                color: white;
-                border: 2px solid #3498DB;
-                border-radius: 5px;
-                cursor: pointer;
-            }
-            select:hover {
-                background-color: #2C3E50;
-            }
-            .botonesNivel {
-                display: flex;
-                gap: 15px;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            .btnNivel {
-                padding: 12px 20px;
-                font-size: 16px;
-                background-color: #34495E;
-                color: white;
-                border: 2px solid #3498DB;
-                cursor: pointer;
-                border-radius: 5px;
-                transition: all 0.3s ease;
-            }
-            .btnNivel:hover {
-                background-color: #2980B9;
-                transform: scale(1.05);
-            }
-            .btnNivel.seleccionado {
-                background-color: #2ecc71;
-                border-color: #27ae60;
-                font-weight: bold;
-            }
-            #resultado {
-                font-size: 24px;
-                margin: 20px;
-                font-weight: bold;
-            }
-            #selectorNivel {
-                background-color: #34495E;
-                padding: 40px;
-                border-radius: 10px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 20px;
-                max-width: 400px;
-                margin: 0 auto;
-            }
-            #selectorNivel h2 {
-                margin: 0;
-                font-size: 24px;
-            }
-            #juegoContainer {
-                display: none;
-            }
-            #juegoContainer.activo {
-                display: block;
-            }
-            #btnEmpezar {
-                background-color: #2ecc71;
-                padding: 12px 30px;
-                font-size: 16px;
-            }
-            #btnEmpezar:hover {
-                background-color: #27ae60;
-            }
-            #btnCambiarDificultad {
-                background-color: #e67e22;
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            #btnCambiarDificultad:hover {
-                background-color: #d35400;
-            }
-            /* Botón para resetear el progreso guardado */
-            #btnReset {
-                background-color: #c0392b;
-                padding: 10px 20px;
-                font-size: 14px;
-                border: none;
-                color: white;
-                cursor: pointer;
-                border-radius: 5px;
-            }
-            #btnReset:hover {
-                background-color: #a93226;
-            }
-            #puntos {
-                font-size: 18px;
-                margin: 10px;
-                color: #f1c40f;
-                font-weight: bold;
-            }
-            .puntosPorVictoria {
-                font-size: 16px;
-                color: #f1c40f;
-                margin-top: 10px;
-            }
-            .puntosPorDerrota {
-                font-size: 16px;
-                color: #e74c3c;
-                margin-top: 10px;
-            }
-            .pista {
-                margin-top: 8px;
-                font-size: 14px;
-                color: #f39c12;
-                font-weight: bold;
-            }
-            
-            /* Animaciones */
-            @keyframes animacionVictoria {
-                0% {
-                    transform: scale(1) rotate(0deg);
-                    opacity: 1;
-                }
-                50% {
-                    transform: scale(1.2) rotate(5deg);
-                }
-                100% {
-                    transform: scale(1) rotate(0deg);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes animacionDerrota {
-                0% {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                25% {
-                    transform: translateX(-10px);
-                }
-                50% {
-                    transform: translateX(10px);
-                }
-                75% {
-                    transform: translateX(-10px);
-                }
-                100% {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: scale(0.8);
-                }
-                to {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-            }
-            
-            #resultado.victoria {
-                animation: animacionVictoria 0.6s ease-in-out;
-                color: #2ecc71 !important;
-            }
-            
-            #resultado.derrota {
-                animation: animacionDerrota 0.6s ease-in-out;
-                color: #e74c3c !important;
-            }
-            
-            #puntos.actualizar {
-                animation: fadeIn 0.5s ease-in-out;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>🎮Adivina el Número</h1>
-        
-        <!-- Selector de Nivel (Pantalla inicial) -->
-        <div id="selectorNivel">
-            <h2>Elige tu nivel de dificultad</h2>
-            <div class="botonesNivel">
-                <button class="btnNivel seleccionado" data-nivel="facil" onclick="SeleccionarNivel('facil')">Fácil (1 - 50)</button>
-                <button class="btnNivel" data-nivel="normal" onclick="SeleccionarNivel('normal')">Normal (1 - 100)</button>
-                <button class="btnNivel" data-nivel="dificil" onclick="SeleccionarNivel('dificil')">Difícil (1 - 200)</button>
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="panel">
+            <h1>🐍Snake</h1>
+            <canvas id="game" width="480" height="480"></canvas>
+            <div id="startHint" class="meta hint" style="display:none;margin-top:8px;">Presiona una flecha, botón táctil o desliza para empezar</div>
+            <!-- modal movido fuera del panel para evitar que se vea borroso -->
+            <div class="meta hint">Controles: flechas / WASD. En móvil usa los botones táctiles.</div>
+                <div class="meta hint">También puedes deslizar (swipe) para mover la serpiente.</div>
+        </div>
+
+        <div class="panel sidebar">
+            <div>
+                <div class="score">Puntos: <span id="score">0</span></div>
+                <div class="meta">Mejor puntuación: <strong id="highscore">0</strong></div>
             </div>
-            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                <button id="btnEmpezar" onclick="EmpezarJuego()">Empezar Juego</button>
-                <button id="btnReset" onclick="ResetProgreso()" title="Borrar progreso guardado">Borrar progreso</button>
+
+            <div class="controls">
+                <button id="btnStart">Empezar</button>
+                <button id="btnPause" class="secondary" title="Pausa (tecla P)">Pausa (P)</button>
+                <button id="btnRestart" class="secondary">Reiniciar</button>
+            </div>
+
+            <!-- Barra de velocidad eliminada: la velocidad se controla por la selección de dificultad -->
+
+            <div style="margin-top:12px;">
+                <div class="meta">Controles táctiles:</div>
+                <div class="touch-controls" style="margin-top:8px;">
+                    <button id="btnUp">↑</button>
+                    <button id="btnRight">→</button>
+                    <button id="btnLeft">←</button>
+                    <button id="btnDown">↓</button>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;">
+                <div class="meta">Instrucciones:</div>
+                <ul style="margin:6px 0 0 18px;color:var(--muted);font-size:13px;">
+                    <li>Come la comida para crecer.</li>
+                    <li>No te choques con paredes ni contigo mismo.</li>
+                    <li>La velocidad depende de la dificultad seleccionada.</li>
+                </ul>
             </div>
         </div>
-        
-        <!-- Juego (Oculto hasta que se seleccione nivel) -->
-        <div id="juegoContainer">
-            <p id="descripcion">Estoy pensando en un número entre 1 y 100. ¿Puedes adivinar cuál es?</p>
-            <input type="number" id="Intento" placeholder="Ingresa tu número" min="1" max="100" onkeypress="ManejarEnter(event)">
-            <button id="btnAdivinar" onclick="VerificarIntento()">Adivinar</button>
-            <button id="btnNuevo" onclick="ReiniciarJuego()">Nuevo Juego</button>
-            <button id="btnCambiarDificultad" onclick="CambiarDificultad()">Cambiar Dificultad</button>
-            <div id="resultado"></div>
-            <div id="intentos">Intentos: 0/10</div>
-            <div id="victorias">Victorias: 0</div>
-            <div id="derrotas">Derrotas: 0</div>
-            <div id="puntos">Puntos: 0</div>
+    </div>
+
+    <!-- Modal overlay para Game Over (oculto por defecto) - colocado fuera del panel para no recibir blur -->
+    <div id="gameOverModal" class="modalOverlay" style="display:none;">
+        <div class="gameOverDialog" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
+            <h2 id="gameOverTitle">Game Over</h2>
+            <p id="gameOverSummary">Puntos: <strong id="modalScore">0</strong></p>
+            <div class="gameOverControls">
+                <button id="modalRestart" class="btnPrimary">Reiniciar</button>
+                <button id="modalChangeDifficulty" class="btnWarn">Cambiar dificultad</button>
+                <button id="modalClose" class="btnSecondary">Cerrar</button>
+            </div>
         </div>
-        <script>
-            // Variables del juego
-            let nivelActual = 'facil';
-            let juegoIniciado = false;
-            let rangoNiveles = {
-                facil: { min: 1, max: 50, multiplicador: 1, pistas: { cercano: 3, lejos: 15 } },
-                normal: { min: 1, max: 100, multiplicador: 2, pistas: { cercano: 5, lejos: 30 } },
-                dificil: { min: 1, max: 200, multiplicador: 3, pistas: null }
-            };
-            let numeroSecreto = null;
-            let intentosRealizados = 0;
-            let victoriasAcumuladas = 0;
-            let derrotasAcumuladas = 0;
-            let puntosAcumulados = 0;
-            let juegoActivo = false;
-            const maxIntentos = 10;
+    </div>
 
-            // Persistencia: guardar y cargar progreso usando localStorage
-            function GuardarProgreso() {
-                const estado = {
-                    victorias: victoriasAcumuladas,
-                    derrotas: derrotasAcumuladas,
-                    puntos: puntosAcumulados,
-                    nivel: nivelActual
-                };
-                try {
-                    localStorage.setItem('adivina_progreso', JSON.stringify(estado));
-                } catch (e) {
-                    console.warn('No se pudo guardar progreso:', e);
-                }
+    <!-- Modal inicial: Seleccionar Dificultad -->
+    <div id="difficultyModal" class="modalOverlay" style="display:flex;">
+        <div class="gameOverDialog" role="dialog" aria-modal="true" aria-labelledby="difficultyTitle">
+            <h2 id="difficultyTitle">Selecciona la dificultad</h2>
+            <p id="difficultyDesc">Elige un nivel para fijar la velocidad inicial del juego.</p>
+            <div class="diffGrid">
+                <button id="diffFacil" class="diffBtn">Fácil<br><small>lento</small></button>
+                <button id="diffMedio" class="diffBtn selected">Medio<br><small>normal</small></button>
+                <button id="diffDificil" class="diffBtn">Difícil<br><small>rápido</small></button>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:6px;">
+                <button id="btnConfirmDifficulty" class="btnPrimary">Comenzar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause overlay (hidden by default) -->
+    <div id="pauseOverlay" class="pauseOverlay" style="display:none;">
+        <div class="pauseBox" role="dialog" aria-modal="true" aria-label="Pausa">
+            <h2>PAUSA</h2>
+            <p>El juego está pausado. Presiona P para reanudar.</p>
+            <div style="display:flex;gap:8px;justify-content:center;">
+                <button id="pauseResumeBtn" class="btnPrimary">Reanudar (P)</button>
+                <button id="pauseRestartBtn" class="btnSecondary">Reiniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas y rejilla
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const cellSize = 20; // píxeles por celda
+        const cols = Math.floor(canvas.width / cellSize);
+        const rows = Math.floor(canvas.height / cellSize);
+
+        // Estado del juego
+        let snake = [{x: Math.floor(cols/2), y: Math.floor(rows/2)}];
+        let dir = {x:1,y:0}; // direccion actual
+        let nextDir = {...dir};
+        let food = null;
+        let score = 0;
+        // La velocidad se determina por la dificultad seleccionada; valor por defecto 'medio' (8)
+        let speed = 8; // ticks por segundo (se ajustará al seleccionar dificultad)
+        // Flag: si true, esperamos a que el jugador presione una dirección/táctil/gesto para empezar
+        let awaitingDirectionStart = false;
+        let loopId = null;
+        let running = false;
+        let gameOver = false;
+
+        // DOM
+        const scoreEl = document.getElementById('score');
+        const highEl = document.getElementById('highscore');
+        const btnStart = document.getElementById('btnStart');
+        const btnPause = document.getElementById('btnPause');
+        const btnRestart = document.getElementById('btnRestart');
+        const speedRange = document.getElementById('speedRange');
+        const MIN_SPEED = 4;
+        const MAX_SPEED = 18;
+
+        // Sonidos (Web Audio)
+        function playTone(freq, dur=0.12, vol=0.18) {
+            try {
+                const ac = new (window.AudioContext || window.webkitAudioContext)();
+                const o = ac.createOscillator();
+                const g = ac.createGain();
+                o.connect(g); g.connect(ac.destination);
+                o.type = 'sine';
+                const now = ac.currentTime;
+                o.frequency.setValueAtTime(freq, now);
+                g.gain.setValueAtTime(vol, now);
+                g.gain.exponentialRampToValueAtTime(0.01, now + dur);
+                o.start(now); o.stop(now + dur + 0.02);
+            } catch (e) { console.warn('Audio no disponible', e); }
+        }
+        function playEat() { playTone(880, 0.12, 0.2); }
+        function playCrash() { playTone(220, 0.25, 0.25); }
+
+        // Highscore
+        const HS_KEY = 'snake_highscore_v1';
+        function getHigh() { return Number(localStorage.getItem(HS_KEY) || 0); }
+        function setHigh(v) { localStorage.setItem(HS_KEY, String(v)); }
+        highEl.textContent = getHigh();
+
+        // Dificultades y mapeo a velocidad (ticks por segundo)
+        const dificultadSpeeds = { facil: 5, medio: 8, dificil: 14 };
+        let dificultadSeleccionada = 'medio';
+        const diffModal = document.getElementById('difficultyModal');
+        const diffBtns = {
+            facil: document.getElementById('diffFacil'),
+            medio: document.getElementById('diffMedio'),
+            dificil: document.getElementById('diffDificil')
+        };
+
+        function seleccionarDificultad(nivel) {
+            if (!nivel || !dificultadSpeeds[nivel]) return;
+            dificultadSeleccionada = nivel;
+            // actualizar selección visual
+            Object.keys(diffBtns).forEach(k => {
+                const b = diffBtns[k];
+                if (!b) return;
+                if (k === nivel) b.classList.add('selected'); else b.classList.remove('selected');
+            });
+            // aplicar velocidad a la variable
+            speed = dificultadSpeeds[nivel];
+            if (speedRange) speedRange.value = speed;
+        }
+
+        function showDifficultyModal() {
+            if (diffModal) diffModal.style.display = 'flex';
+            // deshabilitar interacción con fondo
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideDifficultyModal() {
+            if (diffModal) diffModal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Inicializar selección por defecto
+        seleccionarDificultad(dificultadSeleccionada);
+
+        // Funciones de juego
+        function spawnFood() {
+            let pos;
+            while (true) {
+                pos = {x: Math.floor(Math.random()*cols), y: Math.floor(Math.random()*rows)};
+                if (!snake.some(s=>s.x===pos.x && s.y===pos.y)) break;
+            }
+            food = pos;
+        }
+
+        function resetState() {
+            snake = [{x: Math.floor(cols/2), y: Math.floor(rows/2)}];
+            dir = {x:1,y:0}; nextDir = {...dir};
+            score = 0; scoreEl.textContent = score;
+            gameOver = false;
+            spawnFood();
+        }
+
+        function draw() {
+            // fondo
+            ctx.fillStyle = '#04221a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            // grid opcional (suave)
+            // snake
+            for (let i=0;i<snake.length;i++) {
+                const s = snake[i];
+                ctx.fillStyle = i===0 ? '#9ae6b4' : '#2ecc71';
+                ctx.fillRect(s.x*cellSize+1, s.y*cellSize+1, cellSize-2, cellSize-2);
+            }
+            // comida
+            if (food) {
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                const cx = food.x*cellSize + cellSize/2;
+                const cy = food.y*cellSize + cellSize/2;
+                ctx.arc(cx, cy, cellSize*0.4, 0, Math.PI*2);
+                ctx.fill();
+            }
+            // borde
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.strokeRect(0,0,canvas.width,canvas.height);
+        }
+
+        function step() {
+            if (gameOver) return;
+            // aplicar direccion encolada
+            dir = {...nextDir};
+            const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+            // colisiones con paredes
+            if (head.x < 0 || head.y < 0 || head.x >= cols || head.y >= rows) {
+                endGame(); return;
+            }
+            // colision con si mismo
+            if (snake.some(s => s.x === head.x && s.y === head.y)) { endGame(); return; }
+            // añadir cabeza
+            snake.unshift(head);
+            // comer
+            if (food && head.x === food.x && head.y === food.y) {
+                score += 1; scoreEl.textContent = score; playEat(); spawnFood();
+                // actualizar highscore
+                if (score > getHigh()) { setHigh(score); highEl.textContent = score; }
+            } else {
+                // retirar cola
+                snake.pop();
+            }
+            draw();
+        }
+
+        function gameLoopStart() {
+            if (loopId) clearInterval(loopId);
+            const ms = 1000 / speed;
+            loopId = setInterval(step, ms);
+        }
+
+        function startGame() {
+            if (!running) {
+                running = true; btnPause.textContent = 'Pausa (P)';
+                if (!food) spawnFood();
+                if (!loopId) gameLoopStart();
+                // Ocultar overlay de pausa si estaba visible
+                hidePauseOverlay();
+            }
+        }
+
+        function pauseGame() {
+            running = false; if (loopId) { clearInterval(loopId); loopId = null; }
+            btnPause.textContent = 'Reanudar (P)';
+            // Mostrar overlay de pausa
+            showPauseOverlay();
+        }
+
+        function togglePause() { if (running) pauseGame(); else startGame(); }
+
+        function endGame() {
+            gameOver = true; running = false;
+            if (loopId) { clearInterval(loopId); loopId = null; }
+            playCrash();
+            // Mostrar modal de Game Over con opciones y aplicar blur al fondo
+            // Aumentamos ligeramente el retraso para evitar condiciones de carrera
+            console.log('[Snake] endGame called', { score, running, gameOver });
+            // Asegurarnos de limpiar cualquier estado previo del modal antes de mostrar
+            hideGameOverModal();
+            setTimeout(()=>{
+                console.log('[Snake] calling showGameOverModal');
+                showGameOverModal();
+            }, 180);
+        }
+
+        // Mostrar / ocultar modal de Game Over
+        function showGameOverModal() {
+            const modal = document.getElementById('gameOverModal');
+            const modalScore = document.getElementById('modalScore');
+            console.log('[Snake] showGameOverModal start', { modalExists: !!modal, gameOver, running, score });
+            if (!modal) return;
+            // Asegurar que el modal está anclado en body (evita problemas si fue movido accidentalmente)
+            if (modal.parentElement !== document.body) document.body.appendChild(modal);
+            // Asegurarnos que esté oculto y forzar reflow antes de mostrar (evita problemas donde el estilo queda en 'none')
+            modalScore.textContent = score;
+            // reset visual state
+            modal.classList.remove('open');
+            modal.style.display = 'none';
+            modal.style.opacity = '0';
+            modal.style.zIndex = '9999';
+            // force reflow
+            void modal.offsetHeight;
+            // show
+            modal.style.display = 'flex';
+            // allow a frame then fade in (ensures it's on top and visible)
+            requestAnimationFrame(()=>{
+                modal.style.opacity = '1';
+                modal.classList.add('open');
+                modal.style.pointerEvents = 'auto';
+                document.body.style.overflow = 'hidden'; // bloquear scroll de fondo
+                console.log('[Snake] modal shown (visible)');
+            });
+            // aplicar blur al panel que contiene el canvas
+            const canvasPanel = canvas.parentElement;
+            if (canvasPanel) canvasPanel.classList.add('blurred');
+            // enfocamos el botón reiniciar para accesibilidad
+            const btn = document.getElementById('modalRestart');
+            if (btn) btn.focus();
+        }
+
+        function hideGameOverModal() {
+            const modal = document.getElementById('gameOverModal');
+            if (modal) {
+                console.log('[Snake] hideGameOverModal');
+                modal.style.display = 'none';
+                modal.classList.remove('open');
+                modal.style.zIndex = '';
+            }
+            document.body.style.overflow = ''; // restaurar scroll
+            const canvasPanel = canvas.parentElement;
+            if (canvasPanel) canvasPanel.classList.remove('blurred');
+        }
+
+        // Mostrar / ocultar overlay de pausa
+        function showPauseOverlay() {
+            const overlay = document.getElementById('pauseOverlay');
+            if (!overlay) return;
+            overlay.style.display = 'flex';
+            // aplicar blur al panel del canvas para ocultar el juego
+            const canvasPanel = canvas.parentElement;
+            if (canvasPanel) canvasPanel.classList.add('blurred');
+            // bloquear scroll del fondo y enfocar el botón Reanudar
+            document.body.style.overflow = 'hidden';
+            const resumeBtn = document.getElementById('pauseResumeBtn');
+            if (resumeBtn) resumeBtn.focus();
+        }
+
+        function hidePauseOverlay() {
+            const overlay = document.getElementById('pauseOverlay');
+            if (!overlay) return;
+            overlay.style.display = 'none';
+            const canvasPanel = canvas.parentElement;
+            if (canvasPanel) canvasPanel.classList.remove('blurred');
+            document.body.style.overflow = '';
+        }
+
+        // Acciones del modal (enlazadas inmediatamente ya que el modal está presente en el DOM)
+        {
+            const mr = document.getElementById('modalRestart');
+            const ml = document.getElementById('modalChangeDifficulty');
+            const mc = document.getElementById('modalClose');
+
+            // Pause overlay buttons
+            const pauseResume = document.getElementById('pauseResumeBtn');
+            const pauseRestart = document.getElementById('pauseRestartBtn');
+            if (pauseResume) pauseResume.addEventListener('click', ()=>{ hidePauseOverlay(); startGame(); });
+            if (pauseRestart) pauseRestart.addEventListener('click', ()=>{ hidePauseOverlay(); resetState(); draw(); startGame(); });
+
+            if (mr) mr.addEventListener('click', ()=>{
+                hideGameOverModal();
+                resetState(); draw(); startGame();
+            });
+
+            if (ml) ml.addEventListener('click', ()=>{
+                // Abrir el selector de dificultad desde Game Over
+                console.log('[Snake] abrir selector de dificultad desde Game Over');
+                hideGameOverModal();
+                showDifficultyModal();
+            });
+
+            // nota: el botón "Volver al inicio" fue eliminado porque es redundante con 'Reiniciar'
+
+            if (mc) mc.addEventListener('click', ()=>{
+                // Cerrar modal y quitar blur, dejar game over
+                hideGameOverModal();
+            });
+        }
+
+        // gestión de dirección (evitar reverso)
+        function setDirection(x,y) {
+            // no permitir reverso inmediato
+            if (x === -dir.x && y === -dir.y) return;
+            nextDir = {x,y};
+        }
+
+        // Manejadores de teclado
+        window.addEventListener('keydown', (e)=>{
+            const key = e.key;
+            if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)) e.preventDefault();
+            // Atajos de teclado prioritarios
+            if (key === 'p' || key === 'P' || key === 'Escape') {
+                e.preventDefault();
+                togglePause();
+                return;
             }
 
-            function CargarProgreso() {
-                try {
-                    const raw = localStorage.getItem('adivina_progreso');
-                    if (!raw) return;
-                    const estado = JSON.parse(raw);
-                    if (estado) {
-                        victoriasAcumuladas = Number(estado.victorias) || 0;
-                        derrotasAcumuladas = Number(estado.derrotas) || 0;
-                        puntosAcumulados = Number(estado.puntos) || 0;
-                        nivelActual = estado.nivel || nivelActual;
-                        // Actualizar DOM con los valores cargados
-                        document.getElementById('victorias').textContent = 'Victorias: ' + victoriasAcumuladas;
-                        document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
-                        document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
-                        // Si el selector de nivel se presenta como botones, actualizar estilo
-                        const botones = document.querySelectorAll('.btnNivel');
-                        if (botones && botones.length) {
-                            botones.forEach(b => b.classList.remove('seleccionado'));
-                            const boton = Array.from(botones).find(b => b.dataset && b.dataset.nivel === nivelActual);
-                            if (boton) boton.classList.add('seleccionado');
-                        } else {
-                            // si existiera un select antiguo, intentar actualizar su valor
-                            const sel = document.getElementById('nivel');
-                            if (sel) sel.value = nivelActual;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('No se pudo cargar progreso:', e);
-                }
+            // Si el overlay de pausa está visible, las teclas de dirección NO deben reanudar el juego
+            const pauseOv = document.getElementById('pauseOverlay');
+            if (pauseOv && pauseOv.style.display !== 'none') {
+                // ignorar otras teclas (las teclas de pausa ya fueron manejadas arriba)
+                return;
             }
 
-            // Función para manejar la tecla Enter
-            function ManejarEnter(event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    VerificarIntento();
-                }
+            // Si el modal de dificultad está visible, interpretar la flecha como selección/confirmación rápida
+            if (diffModal && diffModal.style.display !== 'none') {
+                // seleccionar dificultad por defecto 'medio' y empezar
+                seleccionarDificultad('medio');
+                hideDifficultyModal();
+                resetState();
+                awaitingDirectionStart = true;
+                const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'block';
+                return;
             }
-
-            // Función para seleccionar nivel
-            function SeleccionarNivel(nivel) {
-                nivelActual = nivel;
-                // Actualizar estilos de botones
-                const botones = document.querySelectorAll('.btnNivel');
-                botones.forEach(btn => btn.classList.remove('seleccionado'));
-                const boton = Array.from(botones).find(b => b.dataset && b.dataset.nivel === nivel);
-                if (boton) boton.classList.add('seleccionado');
-            }
-
-            // Función para crear y reproducir sonido de victoria
-            function SonidoVictoria() {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                
-                osc.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-                osc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
-                osc.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-                
-                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
-                
-                osc.start(audioContext.currentTime);
-                osc.stop(audioContext.currentTime + 0.6);
-            }
-
-            // Función para crear y reproducir sonido de derrota
-            function SonidoDerrota() {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                
-                osc.frequency.setValueAtTime(349.23, audioContext.currentTime); // F4
-                osc.frequency.setValueAtTime(261.63, audioContext.currentTime + 0.15); // C4
-                
-                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-                
-                osc.start(audioContext.currentTime);
-                osc.stop(audioContext.currentTime + 0.4);
-            }
-
-            // Función para crear y reproducir sonido de inicio
-            function SonidoInicio() {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                
-                osc.frequency.setValueAtTime(440, audioContext.currentTime); // A4
-                
-                gain.gain.setValueAtTime(0.2, audioContext.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                
-                osc.start(audioContext.currentTime);
-                osc.stop(audioContext.currentTime + 0.2);
-            }
-
-            // Función para reproducir un sonido breve cuando el jugador falla un intento
-            function SonidoFallo() {
-                try {
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = audioContext.createOscillator();
-                    const gain = audioContext.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioContext.destination);
-
-                    // Tonos cortos y descendentes para indicar fallo
-                    const now = audioContext.currentTime;
-                    osc.frequency.setValueAtTime(440, now); // A4
-                    osc.frequency.linearRampToValueAtTime(330, now + 0.08); // E4
-
-                    gain.gain.setValueAtTime(0.18, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-
-                    osc.start(now);
-                    osc.stop(now + 0.12);
-                } catch (e) {
-                    // En caso de error con AudioContext, no interrumpir el juego
-                    console.warn('No se pudo reproducir SonidoFallo:', e);
-                }
-            }
-
-            // Funcion que Verifica si Adivinaste
-            function VerificarIntento() {
-                const mensaje = document.getElementById('resultado');
-                const valor = document.getElementById('Intento').value;
-                const intento = parseInt(valor, 10);
-                const minRango = rangoNiveles[nivelActual].min;
-                const maxRango = rangoNiveles[nivelActual].max;
-
-                if (isNaN(intento)) {
-                    mensaje.textContent = 'Por favor ingresa un número válido.';
-                    mensaje.style.color = '#f1c40f';
-                    return;
-                }
-
-                // Validar que el número esté dentro del rango permitido
-                if (intento < minRango || intento > maxRango) {
-                    mensaje.textContent = 'El número debe estar entre ' + minRango + ' y ' + maxRango + '.';
-                    mensaje.style.color = '#e67e22';
-                    return;
-                }
-
-                intentosRealizados++;
-
-                if (intento === numeroSecreto) {
-                    // Calcular puntos: (100 - 10 * intentos) * multiplicador según dificultad
-                    const puntosBase = Math.max(0, 100 - (10 * intentosRealizados));
-                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
-                    const puntosVictoria = puntosBase * multiplicador;
-                    puntosAcumulados += puntosVictoria;
-                    
-                    mensaje.textContent = '🎉 ¡GANASTE! El número era ' + numeroSecreto + '.';
-                    mensaje.innerHTML += '<div class="puntosPorVictoria">+' + puntosVictoria + ' puntos</div>';
-                    mensaje.style.color = '#2ecc71';
-                    mensaje.classList.add('victoria');
-                    victoriasAcumuladas++;
-                    document.getElementById('victorias').textContent = 'Victorias: ' + victoriasAcumuladas;
-                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
-                    document.getElementById('puntos').classList.add('actualizar');
-                        // Guardar progreso
-                        GuardarProgreso();
-                        // bloquear entrada y botón de adivinar
-                        document.getElementById('btnAdivinar').disabled = true;
-                        document.getElementById('Intento').disabled = true;
-                        juegoActivo = false;
-                        // Reproducir sonido de victoria
-                        SonidoVictoria();
-                } else if (intentosRealizados >= maxIntentos) {
-                    // Calcular puntos perdidos por derrota
-                    const puntosBase = 30; // penalidad base
-                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
-                    const puntosPerdidos = puntosBase * multiplicador;
-                    puntosAcumulados = Math.max(0, puntosAcumulados - puntosPerdidos);
-                    
-                    mensaje.textContent = '😞 Has perdido. El número era ' + numeroSecreto + '.';
-                    mensaje.innerHTML += '<div class="puntosPorDerrota">-' + puntosPerdidos + ' puntos</div>';
-                    mensaje.style.color = '#e74c3c';
-                    mensaje.classList.add('derrota');
-                    // contar la derrota y bloquear entrada y botón de adivinar
-                    derrotasAcumuladas++;
-                    document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
-                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
-                    document.getElementById('puntos').classList.add('actualizar');
-                    document.getElementById('btnAdivinar').disabled = true;
-                    document.getElementById('Intento').disabled = true;
-                    juegoActivo = false;
-                    // Guardar progreso
-                    GuardarProgreso();
-                    // Reproducir sonido de derrota
-                    SonidoDerrota();
+            // Direcciones: además iniciamos el juego si no está corriendo
+            let dirKeyPressed = false;
+            if (key === 'ArrowUp' || key === 'w' || key === 'W') { setDirection(0,-1); dirKeyPressed = true; }
+            if (key === 'ArrowDown' || key === 's' || key === 'S') { setDirection(0,1); dirKeyPressed = true; }
+            if (key === 'ArrowLeft' || key === 'a' || key === 'A') { setDirection(-1,0); dirKeyPressed = true; }
+            if (key === 'ArrowRight' || key === 'd' || key === 'D') { setDirection(1,0); dirKeyPressed = true; }
+            if (dirKeyPressed && !running && !gameOver) {
+                // iniciar el juego con la dirección indicada
+                if (awaitingDirectionStart) {
+                    awaitingDirectionStart = false;
+                    const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'none';
+                    startGame();
                 } else {
-                    // Mensaje base según si es mayor o menor
-                    if (intento < numeroSecreto) {
-                        mensaje.textContent = '⬆️ Demasiado bajo. Intenta de nuevo.';
-                    } else {
-                        mensaje.textContent = '⬇️ Demasiado alto. Intenta de nuevo.';
-                    }
-                    mensaje.style.color = '#e74c3c';
-
-                    // Reproducir sonido de fallo (solo en intentos incorrectos antes de la derrota)
-                    SonidoFallo();
-
-                    // Añadir pista para niveles que la permiten (facil y normal)
-                    const pistaCfg = rangoNiveles[nivelActual] && rangoNiveles[nivelActual].pistas;
-                    if (pistaCfg) {
-                        const diff = Math.abs(intento - numeroSecreto);
-                        let textoPista = '';
-                        if (pistaCfg.cercano != null && diff <= pistaCfg.cercano) {
-                            textoPista = 'Muy cerca';
-                        } else if (pistaCfg.lejos != null && diff >= pistaCfg.lejos) {
-                            textoPista = 'Muy lejos';
-                        }
-                        if (textoPista) {
-                            // agregar pista como línea aparte para mantener claridad
-                            mensaje.innerHTML += '<div class="pista">Pista: ' + textoPista + '</div>';
-                        }
-                    }
+                    startGame();
                 }
+            }
+            if (key === ' ' ) { // espacio -> pausar
+                e.preventDefault(); togglePause();
+            }
+            if (key === 'Enter') {
+                if (!running) startGame();
+            }
+        });
 
-                document.getElementById('intentos').textContent = 'Intentos: ' + intentosRealizados + '/' + maxIntentos;
-            }
-            //Funcion para Reiniciar el Juego
-            function ReiniciarJuego() {
-                // Si el juego estaba activo y el jugador no adivinó (y ya hizo al menos un intento), contamos una derrota y restamos puntos
-                if (juegoActivo && intentosRealizados > 0) {
-                    derrotasAcumuladas++;
-                    document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
-                    
-                    // Restar puntos por derrota
-                    const puntosBase = 30;
-                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
-                    const puntosPerdidos = puntosBase * multiplicador;
-                    puntosAcumulados = Math.max(0, puntosAcumulados - puntosPerdidos);
-                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
-                    // Guardar progreso tras penalización por reinicio
-                    GuardarProgreso();
-                }
+        // --- Controles por gestos (swipe) para móvil ---
+        let touchStartX = null, touchStartY = null, touchStartTime = 0;
+        const SWIPE_THRESHOLD = 30; // píxeles mínimos para considerar swipe
 
-                const rango = rangoNiveles[nivelActual];
-                numeroSecreto = Math.floor(Math.random() * (rango.max - rango.min + 1)) + rango.min;
-                intentosRealizados = 0;
-                juegoActivo = true;
-                document.getElementById('resultado').textContent = '';
-                document.getElementById('resultado').classList.remove('victoria', 'derrota');
-                document.getElementById('intentos').textContent = 'Intentos: 0/' + maxIntentos;
-                document.getElementById('Intento').value = '';
-                // Actualizar los límites del input
-                document.getElementById('Intento').max = rangoNiveles[nivelActual].max;
-                document.getElementById('Intento').min = rangoNiveles[nivelActual].min;
-                // Rehabilitar entrada y botón de adivinar
-                document.getElementById('Intento').disabled = false;
-                document.getElementById('btnAdivinar').disabled = false;
-                document.getElementById('Intento').focus();
-                // Las victorias y derrotas se mantienen entre juegos
+        function onTouchStart(e) {
+            if (e.touches && e.touches.length > 0) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchStartTime = Date.now();
             }
-            // Funcion para empezar el juego
-            function EmpezarJuego() {
-                const maxRango = rangoNiveles[nivelActual].max;
-                const minRango = rangoNiveles[nivelActual].min;
-                
-                // Generar número secreto
-                numeroSecreto = Math.floor(Math.random() * maxRango) + 1;
-                intentosRealizados = 0;
-                juegoActivo = true;
-                juegoIniciado = true;
-                
-                // Actualizar el input: min y max
-                document.getElementById('Intento').max = maxRango;
-                document.getElementById('Intento').min = minRango;
-                
-                // Actualizar la descripción
-                const descripcionTexto = 'Estoy pensando en un número entre ' + minRango + ' y ' + maxRango + '. ¿Puedes adivinar cuál es?';
-                document.getElementById('descripcion').textContent = descripcionTexto;
-                
-                // Mostrar el juego y ocultar el selector
-                document.getElementById('selectorNivel').style.display = 'none';
-                document.getElementById('juegoContainer').classList.add('activo');
-                
-                // Limpiar campos
-                document.getElementById('resultado').textContent = '';
-                document.getElementById('intentos').textContent = 'Intentos: 0/' + maxIntentos;
-                document.getElementById('Intento').value = '';
-                document.getElementById('Intento').focus();
-                // Reproducir sonido de inicio
-                SonidoInicio();
-                // Cargar progreso guardado (si existe) para mostrar marcadores antes de jugar
-                CargarProgreso();
+        }
+
+        function onTouchMove(e) {
+            // prevenir scroll al arrastrar sobre el canvas
+            if (e.touches && e.touches.length > 0) {
+                e.preventDefault();
             }
-            // Funcion para cambiar dificultad durante el juego
-            function CambiarDificultad() {
-                // Si el juego está activo y hay intentos sin victoria, contar una derrota y restar puntos
-                if (juegoActivo && intentosRealizados > 0) {
-                    derrotasAcumuladas++;
-                    document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
-                    
-                    // Restar puntos por derrota
-                    const puntosBase = 30;
-                    const multiplicador = rangoNiveles[nivelActual].multiplicador;
-                    const puntosPerdidos = puntosBase * multiplicador;
-                    puntosAcumulados = Math.max(0, puntosAcumulados - puntosPerdidos);
-                    document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
-                    // Guardar progreso tras penalización por reinicio
-                    GuardarProgreso();
-                }
-                
-                // Ocultar el juego y mostrar el selector de nivel
-                document.getElementById('juegoContainer').classList.remove('activo');
-                document.getElementById('selectorNivel').style.display = 'flex';
-                
-                // Reset del estado del juego
-                juegoActivo = false;
-                intentosRealizados = 0;
-                numeroSecreto = null;
-                document.getElementById('Intento').value = '';
-                document.getElementById('resultado').textContent = '';
-                // Guardar estado (por si el usuario sale después de cambiar dificultad)
-                GuardarProgreso();
+        }
+
+        function onTouchEnd(e) {
+            const touch = (e.changedTouches && e.changedTouches[0]);
+            if (!touch || touchStartX === null) return;
+
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+
+            // Distancia mínima
+            if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+                touchStartX = null; touchStartY = null; return;
             }
 
-            // Funcion para resetear/limpiar el progreso guardado
-            function ResetProgreso() {
-                const confirmar = confirm('¿Seguro que quieres borrar todo el progreso guardado? Esta acción no se puede deshacer.');
-                if (!confirmar) return;
-
-                try {
-                    localStorage.removeItem('adivina_progreso');
-                } catch (e) {
-                    console.warn('No se pudo eliminar el progreso:', e);
-                }
-
-                // Resetear contadores en memoria
-                victoriasAcumuladas = 0;
-                derrotasAcumuladas = 0;
-                puntosAcumulados = 0;
-
-                // Actualizar DOM
-                document.getElementById('victorias').textContent = 'Victorias: ' + victoriasAcumuladas;
-                document.getElementById('derrotas').textContent = 'Derrotas: ' + derrotasAcumuladas;
-                document.getElementById('puntos').textContent = 'Puntos: ' + puntosAcumulados;
-
-                // Volver al nivel por defecto (fácil) y actualizar selección visual
-                SeleccionarNivel('facil');
-                // Guardar el estado limpio para consistencia
-                GuardarProgreso();
-
-                // Mensaje breve al usuario
-                const resultado = document.getElementById('resultado');
-                resultado.textContent = 'Progreso borrado. Se ha seleccionado nivel Fácil.';
-                resultado.style.color = '#f1c40f';
-                resultado.classList.remove('victoria', 'derrota');
+            // si estamos en pausa, no interpretar swipes como inicio del juego
+            const pauseOv = document.getElementById('pauseOverlay');
+            if (pauseOv && pauseOv.style.display !== 'none') {
+                touchStartX = null; touchStartY = null; return;
             }
-            // Cargar progreso al cargar la página
-            CargarProgreso();
-        </script>
-    </body>
 
-</HTML>
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // movimiento horizontal
+                if (dx > 0) { setDirection(1,0); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh=document.getElementById('startHint'); if (sh) sh.style.display='none'; } hideDifficultyModal(); startGame(); } } else { setDirection(-1,0); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh=document.getElementById('startHint'); if (sh) sh.style.display='none'; } hideDifficultyModal(); startGame(); } }
+            } else {
+                // movimiento vertical
+                if (dy > 0) { setDirection(0,1); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh=document.getElementById('startHint'); if (sh) sh.style.display='none'; } hideDifficultyModal(); startGame(); } } else { setDirection(0,-1); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh=document.getElementById('startHint'); if (sh) sh.style.display='none'; } hideDifficultyModal(); startGame(); } }
+            }
+
+            touchStartX = null; touchStartY = null;
+        }
+
+        // Registrar listeners en el canvas
+        canvas.addEventListener('touchstart', onTouchStart, {passive:true});
+        canvas.addEventListener('touchmove', onTouchMove, {passive:false});
+        canvas.addEventListener('touchend', onTouchEnd, {passive:true});
+
+        // botones UI
+        btnStart.addEventListener('click', ()=>{
+            // Si el modal de dificultad estaba visible, no iniciar automáticamente: esperar dirección
+            const wasDiffVisible = (diffModal && diffModal.style.display !== 'none');
+            hideDifficultyModal();
+            resetState(); draw();
+            if (wasDiffVisible) {
+                awaitingDirectionStart = true;
+                const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'block';
+            } else {
+                startGame();
+            }
+        });
+        btnPause.addEventListener('click', ()=>{ togglePause(); });
+        btnRestart.addEventListener('click', ()=>{ resetState(); draw(); startGame(); });
+
+        // Handlers para modal de dificultad
+        if (diffBtns.facil) diffBtns.facil.addEventListener('click', ()=> seleccionarDificultad('facil'));
+        if (diffBtns.medio) diffBtns.medio.addEventListener('click', ()=> seleccionarDificultad('medio'));
+        if (diffBtns.dificil) diffBtns.dificil.addEventListener('click', ()=> seleccionarDificultad('dificil'));
+        const btnConfirmDifficulty = document.getElementById('btnConfirmDifficulty');
+        if (btnConfirmDifficulty) btnConfirmDifficulty.addEventListener('click', ()=>{
+            // Ocultar el modal de dificultad y preparar el juego, pero no iniciar hasta que el jugador indique una dirección
+            hideDifficultyModal();
+            resetState(); draw();
+            awaitingDirectionStart = true;
+            const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'block';
+        });
+
+        document.getElementById('btnUp').addEventListener('click', ()=>{ setDirection(0,-1); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'none'; } hideDifficultyModal(); startGame(); } });
+        document.getElementById('btnDown').addEventListener('click', ()=>{ setDirection(0,1); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'none'; } hideDifficultyModal(); startGame(); } });
+        document.getElementById('btnLeft').addEventListener('click', ()=>{ setDirection(-1,0); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'none'; } hideDifficultyModal(); startGame(); } });
+        document.getElementById('btnRight').addEventListener('click', ()=>{ setDirection(1,0); if(!running && !gameOver) { if (awaitingDirectionStart) { awaitingDirectionStart = false; const sh = document.getElementById('startHint'); if (sh) sh.style.display = 'none'; } hideDifficultyModal(); startGame(); } });
+
+        // Si el control de velocidad existiera (opcional), permitir ajuste manual
+        if (speedRange) {
+            speedRange.addEventListener('input', (e)=>{
+                speed = Number(e.target.value);
+                if (running) gameLoopStart();
+            });
+        }
+
+        // inicializar
+        resetState(); draw();
+
+        // Ajuste de tamaño del canvas para alta densidad de píxeles (opcional)
+        (function adjustCanvasForHiDPI(){
+            const ratio = window.devicePixelRatio || 1;
+            if (ratio === 1) return;
+            const w = canvas.width, h = canvas.height;
+            canvas.width = w * ratio; canvas.height = h * ratio;
+            canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+            ctx.scale(ratio, ratio);
+            draw();
+        })();
+
+    </script>
+</body>
+</html>
